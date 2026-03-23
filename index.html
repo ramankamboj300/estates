@@ -158,6 +158,27 @@
             }
         }
 
+        function formatAddress(addr) {
+            if (!addr) return "Address Unavailable";
+            
+            // Format detailed street address
+            const parts = [
+                addr.streetNumber,
+                addr.streetDirectionPrefix,
+                addr.streetName,
+                addr.streetSuffix,
+                addr.streetDirection
+            ].filter(Boolean);
+            
+            const street = parts.join(" ");
+            const location = [addr.city, addr.state, addr.zip].filter(Boolean).join(", ");
+            
+            return {
+                street: street || addr.streetAddress || "No Street",
+                location: location || addr.area || ""
+            };
+        }
+
         function renderProperties(list) {
             const container = document.getElementById("container");
             const stats = document.getElementById("statsDisplay");
@@ -175,13 +196,12 @@
             list.forEach(prop => {
                 const imgUrl = prop.images?.[0] ? `https://cdn.repliers.io/${prop.images[0]}` : "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800";
                 const price = prop.listPrice ? "$" + prop.listPrice.toLocaleString() : "Contact for Price";
-                const address = prop.address?.streetAddress || "Address Unavailable";
-                const city = prop.address?.city || "";
+                
+                const addressData = formatAddress(prop.address);
                 const beds = prop.details?.numBedrooms || 0;
                 const baths = prop.details?.numBathrooms || 0;
                 const status = prop.status === 'A' ? 'Active' : 'Available';
                 
-                // Map coordinates
                 const lat = prop.map?.latitude;
                 const lon = prop.map?.longitude;
                 const googleMapsUrl = (lat && lon) ? `https://www.google.com/maps?q=${lat},${lon}` : "#";
@@ -191,7 +211,7 @@
 
                 card.innerHTML = `
                     <div class="relative aspect-[4/3] overflow-hidden">
-                        <img class="w-full h-full object-cover transition-transform duration-500 hover:scale-110" src="${imgUrl}" alt="${address}" loading="lazy">
+                        <img class="w-full h-full object-cover transition-transform duration-500 hover:scale-110" src="${imgUrl}" alt="${addressData.street}" loading="lazy">
                         <div class="absolute top-4 left-4">
                             <span class="px-3 py-1 bg-white/90 backdrop-blur text-[10px] font-bold rounded-full uppercase tracking-widest text-blue-600 shadow-sm">
                                 ${status}
@@ -200,16 +220,18 @@
                     </div>
                     <div class="p-6 flex-1 flex flex-col">
                         <h3 class="text-2xl font-bold text-slate-900 mb-1">${price}</h3>
-                        <p class="text-slate-500 font-medium line-clamp-1 mb-2">${address}, ${city}</p>
+                        <div class="mb-4">
+                            <p class="text-slate-900 font-bold line-clamp-1">${addressData.street}</p>
+                            <p class="text-slate-500 text-sm font-medium line-clamp-1">${addressData.location}</p>
+                        </div>
                         
-                        <!-- Interactive Map Redirect Link -->
                         <a href="${googleMapsUrl}" target="_blank" class="flex items-center gap-2 mb-4 text-xs text-slate-500 font-semibold hover:text-blue-600 transition-colors group/map">
                             <div class="p-1.5 bg-red-50 text-red-500 rounded-lg group-hover/map:bg-blue-50 group-hover/map:text-blue-600 transition-colors">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
                                 </svg>
                             </div>
-                            <span>View on Google Maps</span>
+                            <span>View Location</span>
                             <svg class="w-3 h-3 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                         </a>
 
@@ -236,7 +258,8 @@
             const minBeds = document.getElementById("bedFilter").value;
 
             const filtered = allProperties.filter(item => {
-                const searchStr = `${item.address?.streetAddress} ${item.address?.city}`.toLowerCase();
+                const addr = formatAddress(item.address);
+                const searchStr = `${addr.street} ${addr.location}`.toLowerCase();
                 const matchesSearch = searchStr.includes(query);
                 
                 const bedCount = item.details?.numBedrooms || 0;
